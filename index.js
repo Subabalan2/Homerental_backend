@@ -1,9 +1,9 @@
 // const express = require("express");
 // const app = express();
 // const mongoose = require("mongoose");
-// require("dotenv").config(); 
+// require("dotenv").config();
 // const cors = require("cors");
-// const Razorpay = require("razorpay"); 
+// const Razorpay = require("razorpay");
 
 // Import Routes
 // const authRoutes = require("./routes/auth.js");
@@ -60,18 +60,14 @@
 //   })
 //   .catch((err) => console.log(`${err} did not connect`));
 
-
 // app.use((req, res, next) => {
 //   res.status(404).json({ message: "Route not found" });
 // });
-
 
 // app.use((err, req, res, next) => {
 //   console.error(err.stack);
 //   res.status(500).json({ message: "Internal Server Error" });
 // });
-
-
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -86,7 +82,17 @@ const userRoutes = require("./routes/user.js");
 
 const app = express();
 
-app.use(cors());
+// CORS configuration for production
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://your-frontend-domain.com"] // Replace with your frontend URL
+        : ["http://localhost:3000", "http://localhost:3001"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
@@ -109,7 +115,7 @@ app.post("/api/razorpay", async (req, res) => {
 
   try {
     const order = await razorpay.orders.create({
-      amount: amount *100, 
+      amount: amount * 100,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
       payment_capture: 1,
@@ -140,12 +146,20 @@ app.post("/api/payment/success", async (req, res) => {
   res.json({ msg: "Payment successful" });
 });
 
+// Health check endpoint for Render
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", message: "Server is running" });
+});
+
 /* MONGOOSE SETUP */
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 mongoose
   .connect(process.env.MONGO_URL, { dbName: "Dream_Nest" })
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port: ${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`Server running on port: ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    });
   })
   .catch((err) => console.log(`${err} did not connect`));
 
